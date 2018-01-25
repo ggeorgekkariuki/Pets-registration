@@ -114,9 +114,11 @@ public class PetProvider extends ContentProvider {
 
         if (name == null || name.isEmpty() || name.length() == 0) {
             throw new IllegalArgumentException("Field requires a name");
-        } else if (gender == null || !PetContract.PetEntry.isValidGender(gender)) {
-           throw new IllegalArgumentException("Field requires a gender");
-        } else if (weight != null && weight < 0) {
+        }
+//        else if (gender == null || !PetContract.PetEntry.isValidGender(gender)) {
+//           throw new IllegalArgumentException("Field requires a gender");
+//        }
+        else if (weight != null && weight < 0) {
            throw new IllegalArgumentException("Field requires a weight");
         }
 
