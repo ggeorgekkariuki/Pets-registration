@@ -87,7 +87,16 @@ public class PetProvider extends ContentProvider {
     @Nullable
     @Override
     public String getType(@NonNull Uri uri) {
-        return null;
+        final int match = sUriMatcher.match(uri);
+        switch (match) {
+            case PETS:
+                return PetContract.CONTENT_LIST_TYPE;
+            case PETS_ID:
+                return PetContract.CONTENT_ITEM_TYPE;
+            default:
+                throw new IllegalStateException("Unknown URI " + uri + " with match " + match);
+
+        }
     }
 
     @Nullable
@@ -136,12 +145,77 @@ public class PetProvider extends ContentProvider {
 
     @Override
     public int delete(@NonNull Uri uri, @Nullable String selection, @Nullable String[] selectionArgs) {
-        return 0;
+        // Get writable database
+        SQLiteDatabase database = mDbHelper.getWritableDatabase();
+
+        final int match = sUriMatcher.match(uri);
+        switch (match) {
+            case PETS:
+                // Delete all rows that match the selection and selection args
+                return database.delete(PetContract.PetEntry.TABLE_NAME, selection, selectionArgs);
+            case PETS_ID:
+                // Delete a single row given by the ID in the URI
+                selection = PetContract.PetEntry._ID + "=?";
+                selectionArgs = new String[]{String.valueOf(ContentUris.parseId(uri))};
+                return database.delete(PetContract.PetEntry.TABLE_NAME, selection, selectionArgs);
+            default:
+                throw new IllegalArgumentException("Deletion is not supported for " + uri);
+        }
     }
 
     @Override
     public int update(@NonNull Uri uri, @Nullable ContentValues values, @Nullable String selection,
                       @Nullable String[] selectionArgs) {
-        return 0;
+        final int match = sUriMatcher.match(uri);
+
+        switch (match){
+            case PETS:
+                return updatePet(uri, values, selection, selectionArgs);
+            case PETS_ID:
+                // For the PET_ID code, extract out the ID from the URI,
+                // so we know which row to update. Selection will be "_id=?" and selection
+                // arguments will be a String array containing the actual ID.
+                selection = PetContract.PetEntry.COLUMN_ID + "=?";
+                selectionArgs = new String[] {String.valueOf(ContentUris.parseId(uri))};
+                return updatePet(uri, values, selection, selectionArgs);
+            default:
+                throw new IllegalArgumentException("Insertion not supported for " + uri);
+        }
+    }
+
+    public int updatePet(Uri uri, ContentValues contentValues, String selection, String [] selectionArgs){
+        //We can extract out an attribute from the ContentValues object based on the key name
+
+        String name = contentValues.getAsString(PetContract.PetEntry.COLUMN_NAME);
+        Integer gender = contentValues.getAsInteger(PetContract.PetEntry.COLUMN_GENDER);
+        Integer  weight = contentValues.getAsInteger(PetContract.PetEntry.COLUMN_WEIGHT);
+
+        //Sanity checking here to make sure we only use the proper data
+        if (name == null || name.isEmpty() || name.length() == 0) {
+            throw new IllegalArgumentException("Field requires a name");
+        }
+//        else if (gender == null || !PetContract.PetEntry.isValidGender(gender)) {
+//           throw new IllegalArgumentException("Field requires a gender");
+//        }
+        else if (weight != null && weight < 0) {
+            throw new IllegalArgumentException("Field requires a weight");
+        }
+        // If there are no values to update, then don't try to update the database
+        if (contentValues.size() == 0) {
+            return 0;
+        }
+        //If the checks are all okay, we can update an entry or more
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+
+        //Method returns a long which shows where an entry has been updated
+        long id = db.update(PetContract.PetEntry.TABLE_NAME,contentValues,selection,selectionArgs);
+
+        if (id == -1){
+            Log.e(LOG_TAG, "Failed to insert row for " + uri);
+        } else{
+            Toast.makeText(getContext(), "Updated at row: " + id, Toast.LENGTH_SHORT).show();
+        }
+
+        return ((int) id);
     }
 }
