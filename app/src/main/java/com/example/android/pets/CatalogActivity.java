@@ -22,23 +22,33 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.CursorAdapter;
+import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.android.pets.data.PetContract;
+import com.example.android.pets.data.PetCursorAdapter;
 import com.example.android.pets.data.PetDBHelper;
 import com.example.android.pets.data.PetProvider;
+import android.support.v4.app.LoaderManager.LoaderCallbacks;
 
 /**
  * Displays list of pets that were entered and stored in the app.
  */
-public class CatalogActivity extends AppCompatActivity {
+public class CatalogActivity extends AppCompatActivity implements
+LoaderCallbacks<Cursor>{
 
     public PetDBHelper mDBHelper;
+
+    public Cursor cursor;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,12 +65,27 @@ public class CatalogActivity extends AppCompatActivity {
             }
         });
 
-        displayDatabaseInfo();
-    }
 
+        /*If there is no data in the database, use the empty list view*/
+        // Find the ListView which will be populated with the pet data
+        ListView petListView = (ListView) findViewById(R.id.list);
+
+        // Find and set empty view on the ListView, so that it only shows when the list has 0 items.
+
+            View emptyView = findViewById(R.id.empty_view);
+            petListView.setEmptyView(emptyView);
+
+            displayDatabaseInfo();
+
+
+
+
+
+    }
+// This method displays data on the database in a way specified by the List View
     private void displayDatabaseInfo() {
 
-
+/*Getting the data from the database*/
         // Perform this raw SQL query "SELECT * FROM pets"
         // to get a Cursor that contains all rows from the pets table.
         String [] projection = null;
@@ -68,38 +93,14 @@ public class CatalogActivity extends AppCompatActivity {
 
         Cursor cursor = getContentResolver().query(PetContract.PetEntry.CONTENT_URI,projection,
                 selection,null,null);
-//        Cursor cursor = db.rawQuery("SELECT * FROM " + PetContract.PetEntry.TABLE_NAME, null);
-        try {
-            // Display the number of rows in the Cursor (which reflects the number of rows in the
-            // pets table in the database).
-            TextView displayView = (TextView) findViewById(R.id.text_view_pet);
-            displayView.setText("Number of rows in pets database table: " + cursor.getCount() + "\n" + "\n");
+        /*Setting the data according to the specifications of the list view via the
+        * Pet Cursor Adapter*/
+        ListView listView = (ListView) findViewById(R.id.list);
 
-            //Get the column index where the value is stored
-            int nameColumnID = cursor.getColumnIndex(PetContract.PetEntry.COLUMN_NAME);
-            int breedColumnID = cursor.getColumnIndex(PetContract.PetEntry.COLUMN_BREED);
-            int genderColumnID = cursor.getColumnIndex(PetContract.PetEntry.COLUMN_GENDER);
-            int weightColumnID = cursor.getColumnIndex(PetContract.PetEntry.COLUMN_WEIGHT);
-            int idColumnID = cursor.getColumnIndex(PetContract.PetEntry.COLUMN_ID);
+        PetCursorAdapter petCursorAdapter = new PetCursorAdapter(getApplicationContext(),cursor);
 
-            displayView.append("_id - name - breed - gender - weight" + "\n");
+        listView.setAdapter(petCursorAdapter);
 
-            while (cursor.moveToNext()){
-                //The value of whatever is stored in the column index
-                int IDValue = cursor.getInt(idColumnID);
-                String nameValue = cursor.getString(nameColumnID);
-                String breedValue = cursor.getString(breedColumnID);
-                int genderValue = cursor.getInt(genderColumnID);
-                int weightValue = cursor.getInt(weightColumnID);
-
-                displayView.append(IDValue + " - " + nameValue + " - " +
-                        breedValue + " - " + genderValue + " - " + weightValue + "\n" + "\n");
-            }
-        } finally {
-            // Always close the cursor when you're done reading from it. This releases all its
-            // resources and makes it invalid.
-            cursor.close();
-        }
     }
 
     private void insertDummyPet(){
@@ -177,5 +178,20 @@ public class CatalogActivity extends AppCompatActivity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        return null;
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+
     }
 }
