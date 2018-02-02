@@ -15,6 +15,7 @@
  */
 package com.example.android.pets;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
@@ -22,11 +23,14 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.CursorAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
@@ -43,12 +47,13 @@ import android.support.v4.app.LoaderManager.LoaderCallbacks;
  * Displays list of pets that were entered and stored in the app.
  */
 public class CatalogActivity extends AppCompatActivity implements
-LoaderCallbacks<Cursor>{
+        LoaderCallbacks<Cursor>{
 
     public PetDBHelper mDBHelper;
 
-    public Cursor cursor;
+    private static final int PET_LOADER = 1;
 
+    PetCursorAdapter mPetCursorAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,33 +80,30 @@ LoaderCallbacks<Cursor>{
             View emptyView = findViewById(R.id.empty_view);
             petListView.setEmptyView(emptyView);
 
-            displayDatabaseInfo();
+        //Set up an Adapter to create a list item for each row of pets data in the database
+        //There is no pet data yet(until the loader finishes) so pass in null for the cursor
+        mPetCursorAdapter = new PetCursorAdapter(this, null);
+        petListView.setAdapter(mPetCursorAdapter);
 
+        //Start the loader
+        getSupportLoaderManager().initLoader(PET_LOADER,null, this);
 
+        //When a list item is clicked, move into the EditorActivity
+        petListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                //On key list view pressed, we want to move to the new class/ activity
+                Intent intent = new Intent(CatalogActivity.this,EditorActivity.class);
+                //We want to specify that it is the nth option we've clicked on.
+                //That is why we use the .withAppendedId to fix the location id to the URI
+                Uri intentUri = ContentUris.withAppendedId(PetContract.PetEntry.CONTENT_URI, id);
 
-
-
+                intent.setData(intentUri);
+                startActivity(intent);
+            }
+        });
     }
-// This method displays data on the database in a way specified by the List View
-    private void displayDatabaseInfo() {
 
-/*Getting the data from the database*/
-        // Perform this raw SQL query "SELECT * FROM pets"
-        // to get a Cursor that contains all rows from the pets table.
-        String [] projection = null;
-        String selection = null;
-
-        Cursor cursor = getContentResolver().query(PetContract.PetEntry.CONTENT_URI,projection,
-                selection,null,null);
-        /*Setting the data according to the specifications of the list view via the
-        * Pet Cursor Adapter*/
-        ListView listView = (ListView) findViewById(R.id.list);
-
-        PetCursorAdapter petCursorAdapter = new PetCursorAdapter(getApplicationContext(),cursor);
-
-        listView.setAdapter(petCursorAdapter);
-
-    }
 
     private void insertDummyPet(){
 
@@ -143,15 +145,13 @@ LoaderCallbacks<Cursor>{
 //                +  " == 'Barry'");
 
 
-        db.delete(PetContract.PetEntry.TABLE_NAME, selection, selectionArgs);
-        db.close();
+//        db.delete(PetContract.PetEntry.TABLE_NAME, selection, selectionArgs);
+//        db.close();
+
+        int deleteUri = getContentResolver().delete(PetContract.PetEntry.CONTENT_URI, selection,
+                selectionArgs);
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        displayDatabaseInfo();
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -168,13 +168,11 @@ LoaderCallbacks<Cursor>{
             // Respond to a click on the "Insert dummy data" menu option
             case R.id.action_insert_dummy_data:
                 insertDummyPet();
-                displayDatabaseInfo();
                 return true;
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
                  //Do nothing for now
                 deleteDummyPet();
-                displayDatabaseInfo();
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -182,16 +180,32 @@ LoaderCallbacks<Cursor>{
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        return null;
+        //Define a projection that defines the columns that we care about
+        //For a cursor adapter, the _id column has to be included
+        String [] projection = {
+                PetContract.PetEntry._ID,
+                PetContract.PetEntry.COLUMN_NAME,
+                PetContract.PetEntry.COLUMN_BREED
+        };
+        //This method will execute a content provider on a background thread
+
+        return new CursorLoader(this,
+                PetContract.PetEntry.CONTENT_URI,
+                projection,
+                null,
+                null,
+                null);
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-
+    //Update with this new cursor to get the updated data
+        mPetCursorAdapter.swapCursor(data);
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
-
+    //This call back is called when the data needs to be deleted
+        mPetCursorAdapter.swapCursor(null);
     }
 }
