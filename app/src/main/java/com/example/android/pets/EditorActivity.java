@@ -95,6 +95,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderCallbacks
         //If  the intent does not contain a URI we know we are adding a new pet
         if(mCurrentPetUri == null){
             setTitle(R.string.editor_activity_title_new_pet);
+            //No need for the delete button at this point because we are adding a new pet
+            invalidateOptionsMenu();
         } else {
             setTitle(R.string.editor_activity_title_edit_pet);
             getSupportLoaderManager().initLoader(EDIT_PET_LOADER, null, this);
@@ -175,7 +177,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderCallbacks
                 return true;
             // Respond to a click on the "Delete" menu option
             case R.id.action_delete:
-                // Do nothing for now
+                deletePet();
+                finish();
                 return true;
             // Respond to a click on the "Up" arrow button in the app bar
             case android.R.id.home:
@@ -205,8 +208,17 @@ public class EditorActivity extends AppCompatActivity implements LoaderCallbacks
         return super.onOptionsItemSelected(item);
     }
 
-    private void savePets(){
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        if (mCurrentPetUri == null){
+            MenuItem menuItem = menu.findItem(R.id.action_delete);
+            menuItem.setVisible(false);
+        }
+        return true;
+    }
 
+    private void savePets(){
 
         String nameString = mNameEditText.getText().toString().trim();
         String breedString = mBreedEditText.getText().toString().trim();
@@ -363,6 +375,44 @@ public class EditorActivity extends AppCompatActivity implements LoaderCallbacks
         // Create and show the AlertDialog
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
+    }
+
+    private void showToBeDeletedDialog(DialogInterface.OnClickListener deleteButtonClickListener){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(R.string.delete_dialog_msg);
+        builder.setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+               deletePet();
+            }
+        });
+        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // User clicked the "Cancel" button, so dismiss the dialog
+                // and continue editing the pet
+
+                if(dialog != null){
+                    dialog.dismiss();
+                }
+            }
+        });
+
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+
+    }
+
+    private void deletePet() {
+        int id = getContentResolver().delete(mCurrentPetUri,null, null);
+
+        if(id == -1){
+            Toast.makeText(this, R.string.editor_delete_pet_failed,Toast.LENGTH_SHORT)
+                    .show();
+        } else {
+            Toast.makeText(this, "Pet deleted at " + id,Toast.LENGTH_SHORT)
+                    .show();
+        }
     }
 
     @Override
