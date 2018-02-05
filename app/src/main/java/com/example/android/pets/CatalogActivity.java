@@ -131,25 +131,37 @@ public class CatalogActivity extends AppCompatActivity implements
 
     }
 
-    private void deleteDummyPet () {
-        mDBHelper = new PetDBHelper(this);
-        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+//    private void deleteDummyPet () {
+//        mDBHelper = new PetDBHelper(this);
+//        SQLiteDatabase db = mDBHelper.getWritableDatabase();
+//
+//        String [] projection = {PetContract.PetEntry.COLUMN_NAME};
+//        String selection = PetContract.PetEntry.COLUMN_NAME + "=?";
+//        String [] selectionArgs = new String []{"Barry"};
+//
+////       db.execSQL("DELETE FROM " +
+////                PetContract.PetEntry.TABLE_NAME +
+////                " WHERE " + PetContract.PetEntry.COLUMN_NAME
+////                +  " == 'Barry'");
+//
+//
+////        db.delete(PetContract.PetEntry.TABLE_NAME, selection, selectionArgs);
+////        db.close();
+//
+////        int deleteUri = getContentResolver().delete(PetContract.PetEntry.CONTENT_URI, selection,
+////                selectionArgs);
+//    }
 
-        String [] projection = {PetContract.PetEntry.COLUMN_NAME};
-        String selection = PetContract.PetEntry.COLUMN_NAME + "=?";
-        String [] selectionArgs = new String []{"Barry"};
+    private void deletePet() {
+        int id = getContentResolver().delete(PetContract.PetEntry.CONTENT_URI,null, null);
 
-//       db.execSQL("DELETE FROM " +
-//                PetContract.PetEntry.TABLE_NAME +
-//                " WHERE " + PetContract.PetEntry.COLUMN_NAME
-//                +  " == 'Barry'");
-
-
-//        db.delete(PetContract.PetEntry.TABLE_NAME, selection, selectionArgs);
-//        db.close();
-
-        int deleteUri = getContentResolver().delete(PetContract.PetEntry.CONTENT_URI, selection,
-                selectionArgs);
+        if(id == -1){
+            Toast.makeText(this, R.string.editor_delete_pet_failed,Toast.LENGTH_SHORT)
+                    .show();
+        } else {
+            Toast.makeText(this, "Rows deleted " + id,Toast.LENGTH_SHORT)
+                    .show();
+        }
     }
 
 
@@ -171,8 +183,8 @@ public class CatalogActivity extends AppCompatActivity implements
                 return true;
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
-                 //Do nothing for now
-                deleteDummyPet();
+                 //Deletes all pets in the database
+                deletePet();
                 return true;
         }
         return super.onOptionsItemSelected(item);

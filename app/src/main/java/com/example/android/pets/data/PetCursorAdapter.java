@@ -3,6 +3,7 @@ package com.example.android.pets.data;
 import android.content.Context;
 import android.database.Cursor;
 import android.text.Layout;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,6 +39,11 @@ public class PetCursorAdapter extends CursorAdapter {
         String breedField = cursor.getString(cursor.getColumnIndex(PetContract.PetEntry.COLUMN_BREED));
         //Finally, we set/bind
         nameView.setText(nameField);
-        breedView.setText(breedField);
+
+        //If nothing was saved in the db under the breed column, this will be displayed in the UI
+        if (TextUtils.isEmpty(breedField)){
+            breedView.setText("Unknown breed");
+        } else
+            breedView.setText(breedField);
     }
 }

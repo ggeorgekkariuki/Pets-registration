@@ -229,7 +229,6 @@ public class EditorActivity extends AppCompatActivity implements LoaderCallbacks
                 TextUtils.isEmpty(nameString) && TextUtils.isEmpty(breedString) &&
                 TextUtils.isEmpty(weightString) && mGender == PetEntry.GENDER_UNKNOWN) {return;}
 
-
         try {
             weightInt = Integer.parseInt(weightString);
         }catch (NumberFormatException e){
